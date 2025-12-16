@@ -1,104 +1,145 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-<script>
-    // --- GLOBAL VARIABLES ---
-    let scene, camera, renderer, controlledObject;
-    let targetRotationX = 0;
-    let targetRotationY = 0;
-
-    // --- THREE.JS SETUP ---
-    function initThreeJS() {
-        const canvasContainer = document.getElementById('webgl-canvas');
-        
-        // 1. Scene Setup
-        scene = new THREE.Scene();
-        
-        // 2. Camera Setup
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 5;
-        
-        // 3. Renderer Setup
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        canvasContainer.appendChild(renderer.domElement);
-
-        // --- NEW ELEMENT 1: The Central Neon Globe (Your Model) ---
-        const geometry = new THREE.SphereGeometry(1.5, 64, 64); // High-resolution sphere
-        // Use a glowing, wireframe-style material for a supercluster/planet effect
-        const material = new THREE.MeshLambertMaterial({ 
-            color: 0x00ffcc,           // Neon cyan color
-            emissive: 0x00ffcc,        // Causes the object to glow
-            emissiveIntensity: 0.5,    // Set glow strength
-            wireframe: true            // Creates a futuristic grid look
-        });
-        controlledObject = new THREE.Mesh(geometry, material);
-        scene.add(controlledObject);
-
-        // --- NEW ELEMENT 2: Lighting and Environment ---
-        // Ambient light for general brightness
-        scene.add(new THREE.AmbientLight(0xffffff, 0.1)); 
-
-        // Point light (acts as the core of the supercluster)
-        const pointLight = new THREE.PointLight(0x00ffaa, 2, 100); 
-        pointLight.position.set(0, 0, 0); // Center of the sphere
-        scene.add(pointLight);
-
-        // --- NEW ELEMENT 3: Starfield Background (A simple, code-generated background) ---
-        const starsGeometry = new THREE.BufferGeometry();
-        const starsCount = 5000;
-        const positions = [];
-
-        for (let i = 0; i < starsCount; i++) {
-            // Generate random positions far away from the center
-            positions.push((Math.random() - 0.5) * 200); 
-            positions.push((Math.random() - 0.5) * 200);
-            positions.push((Math.random() - 0.5) * 200);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Aesthetics Model</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111; }
+        #webgl-canvas {
+            /* This is the container that the JavaScript looks for */
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 5;
         }
-        starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-family: sans-serif;
+            font-size: 1.2em;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
 
-        const starsMaterial = new THREE.PointsMaterial({
-            color: 0xffffff,
-            size: 0.15,
-            sizeAttenuation: true
-        });
+    <div id="webgl-canvas"></div>
+    <div id="instructions">
+        **Instructions:** Move your mouse over the screen to rotate the Neon Supercluster!
+    </div>
 
-        const starField = new THREE.Points(starsGeometry, starsMaterial);
-        scene.add(starField);
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-        window.addEventListener('resize', onWindowResize, false);
-        document.addEventListener('mousemove', onDocumentMouseMove, false);
-    }
+    <script>
+        // --- GLOBAL VARIABLES ---
+        let scene, camera, renderer, controlledObject;
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+        
+        // --- THREE.JS SETUP ---
+        function initThreeJS() {
+            // FIX: document.getElementById('webgl-canvas') will now find the element!
+            const canvasContainer = document.getElementById('webgl-canvas');
+            
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+            
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+            
+            // 3. Renderer Setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // This is the line that previously failed:
+            canvasContainer.appendChild(renderer.domElement); 
 
-    function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    }
+            // --- ELEMENT 1: The Central Neon Globe (The Model) ---
+            const geometry = new THREE.SphereGeometry(1.5, 64, 64); // High-resolution sphere
+            const material = new THREE.MeshLambertMaterial({ 
+                color: 0x00ffcc,          
+                emissive: 0x00ffcc,       
+                emissiveIntensity: 0.5,   
+                wireframe: true           
+            });
+            controlledObject = new THREE.Mesh(geometry, material);
+            scene.add(controlledObject);
 
-    function onDocumentMouseMove(event) {
-        // Normalize mouse positions
-        targetRotationY = (event.clientX / window.innerWidth) * 2 - 1;
-        targetRotationX = (event.clientY / window.innerHeight) * 2 - 1;
-    }
+            // --- ELEMENT 2: Lighting and Environment ---
+            scene.add(new THREE.AmbientLight(0xffffff, 0.1)); 
+            
+            // Point light at the core
+            const pointLight = new THREE.PointLight(0x00ffaa, 2, 100); 
+            pointLight.position.set(0, 0, 0); 
+            scene.add(pointLight);
 
-    // --- ANIMATION LOOP ---
-    function animate() {
-        requestAnimationFrame(animate);
+            // --- ELEMENT 3: Starfield Background (A simple, code-generated background) ---
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsCount = 5000;
+            const positions = [];
 
-        // Apply smooth rotation to the central object
-        if (controlledObject) {
-            controlledObject.rotation.y += (targetRotationY * Math.PI - controlledObject.rotation.y) * 0.05;
-            controlledObject.rotation.x += (targetRotationX * Math.PI * 0.5 - controlledObject.rotation.x) * 0.05;
+            for (let i = 0; i < starsCount; i++) {
+                positions.push((Math.random() - 0.5) * 200); 
+                positions.push((Math.random() - 0.5) * 200);
+                positions.push((Math.random() - 0.5) * 200);
+            }
+            starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+            const starsMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.15,
+                sizeAttenuation: true
+            });
+
+            const starField = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(starField);
+
+            window.addEventListener('resize', onWindowResize, false);
+            document.addEventListener('mousemove', onDocumentMouseMove, false);
         }
 
-        renderer.render(scene, camera);
-    }
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
 
-    // --- INITIALIZATION ---
-    function run() {
-        initThreeJS();
-        animate();
-    }
+        function onDocumentMouseMove(event) {
+            // Normalize mouse positions
+            targetRotationY = (event.clientX / window.innerWidth) * 2 - 1;
+            targetRotationX = (event.clientY / window.innerHeight) * 2 - 1;
+        }
 
-    run();
-</script>
+        // --- ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Apply smooth rotation to the central object
+            if (controlledObject) {
+                // Horizontal mouse movement controls Y-axis rotation
+                controlledObject.rotation.y += (targetRotationY * Math.PI - controlledObject.rotation.y) * 0.05;
+                // Vertical mouse movement controls X-axis rotation
+                controlledObject.rotation.x += (targetRotationX * Math.PI * 0.5 - controlledObject.rotation.x) * 0.05;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // --- INITIALIZATION ---
+        function run() {
+            initThreeJS();
+            animate();
+        }
+
+        run();
+    </script>
+
+</body>
+</html>
