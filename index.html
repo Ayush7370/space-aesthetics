@@ -1,57 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Mouse Control Model</title>
-    <style>
-        body { margin: 0; overflow: hidden; background-color: #111; }
-        #webgl-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 5;
-        }
-        #instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            font-family: sans-serif;
-            font-size: 1.2em;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 20;
-        }
-    </style>
-</head>
-<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script type="module">
+        // Import all necessary MediaPipe components
+        import { HandLandmarker, FilesetResolver, RunningMode } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
-    <div id="webgl-canvas"></div>
+        // --- CONSTANTS ---
+        const INDEX_FINGER_TIP = 8; 
 
-    <div id="instructions">
-        **Instructions:** Move your mouse over the screen to rotate the cube!
-        <br>It rotates based on your cursor's position.
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-    <script>
         // --- GLOBAL VARIABLES ---
-        let scene, camera, renderer, cube;
-        // Variables to store mouse position (normalized from -1 to 1)
-        let targetRotationX = 0;
-        let targetRotationY = 0;
-        
-        // --- THREE.JS SETUP ---
-        function initThreeJS() {
-            // Setup skipped for brevity (same as before)
+        let handLandmarker;
+        // UPDATED: Use the imported RunningMode constant
+        let runningMode = RunningMode.VIDEO; 
+        let video;
+        let canvasContainer;
+        let lastVideoTime = -1;
 
+        // --- THREE.JS SETUP ---
+        let scene, camera, renderer, cube;
+        
+        function initThreeJS() {
+            canvasContainer = document.getElementById('webgl-canvas');
+            
             // Scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color( 0x111111 ); // Dark background
             
             // Camera (Perspective, looking out)
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -60,7 +31,7 @@
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('webgl-canvas').appendChild(renderer.domElement);
+            canvasContainer.appendChild(renderer.domElement);
             
             // Cube Model
             const geometry = new THREE.BoxGeometry(2, 2, 2);
@@ -68,54 +39,105 @@
             cube = new THREE.Mesh(geometry, material);
             scene.add(cube);
 
-            // Lighting
-            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            // Lighting (Essential for MeshPhongMaterial)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(0, 1, 1).normalize();
             scene.add(directionalLight);
 
             window.addEventListener('resize', onWindowResize, false);
-            // NEW: Add Mouse Listener
-            document.addEventListener('mousemove', onDocumentMouseMove, false);
         }
 
         function onWindowResize() {
-            // ... (Same as before)
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // --- MOUSE CONTROL LOGIC ---
-        function onDocumentMouseMove(event) {
-            // Normalize mouse X position (0 to window width) to a target rotation (-1 to 1)
-            targetRotationY = (event.clientX / window.innerWidth) * 2 - 1;
-
-            // Normalize mouse Y position (0 to window height) to a target rotation (-1 to 1)
-            // We invert the Y control here for a more natural feel
-            targetRotationX = (event.clientY / window.innerHeight) * 2 - 1;
+        // --- MEDIAPIPE SETUP ---
+        async function createHandLandmarker() {
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+            );
+            handLandmarker = await HandLandmarker.create(vision, {
+                baseOptions: {
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                    delegate: "GPU"
+                },
+                // UPDATED: use the imported RunningMode.VIDEO
+                runningMode: RunningMode.VIDEO, 
+                numHands: 1
+            });
+            console.log("Hand Landmarker loaded!");
         }
 
-        // --- ANIMATION LOOP (Replaces the Webcam Loop) ---
-        function animate() {
-            requestAnimationFrame(animate);
+        // --- CAMERA SETUP ---
+        function enableCam() {
+            video = document.getElementById('webcam-view');
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    video.srcObject = stream;
+                    video.addEventListener("loadeddata", predictWebcam);
+                })
+                .catch(error => {
+                    console.error("Error accessing webcam: ", error);
+                    document.getElementById('instructions').textContent = "ERROR: Could not access webcam. Check permissions and ensure all errors are cleared in the console.";
+                });
+        }
+        
+        // --- MAIN PREDICTION LOOP ---
+        function predictWebcam() {
+            if (runningMode === RunningMode.VIDEO) {
+                let startTimeMs = performance.now();
+                if (video.currentTime !== lastVideoTime) {
+                    lastVideoTime = video.currentTime;
+                    // Detect hands in the current video frame
+                    handLandmarker.detectForVideo(video, startTimeMs, (result) => {
+                        processDetectionResult(result);
+                    });
+                }
+            }
+            // Continue the loop
+            window.requestAnimationFrame(predictWebcam);
+        }
 
-            // Smoothly move the cube's rotation towards the target mouse rotation
-            // The 0.1 is the damping factor for smooth movement
-            cube.rotation.y += (targetRotationY * Math.PI - cube.rotation.y) * 0.05;
-            cube.rotation.x += (targetRotationX * Math.PI * 0.5 - cube.rotation.x) * 0.05;
+        // --- CORE CONTROL LOGIC (The "Magic") ---
+        function processDetectionResult(result) {
+            renderer.render(scene, camera); // Render the 3D scene every frame
 
-            renderer.render(scene, camera);
+            if (result.landmarks.length > 0) {
+                // Get the landmarks for the first detected hand
+                const landmarks = result.landmarks[0];
+                
+                // Get the coordinates of the index finger tip (landmark 8)
+                const indexFinger = landmarks[INDEX_FINGER_TIP];
+                
+                // 1. HORIZONTAL CONTROL
+                const mappedX = indexFinger.x * 2 - 1; 
+                const maxRotationSpeed = 0.05;
+
+                cube.rotation.y += mappedX * maxRotationSpeed;
+
+                // 2. VERTICAL CONTROL
+                const mappedY = indexFinger.y * 2 - 1; 
+                cube.rotation.x -= mappedY * maxRotationSpeed;
+
+            } else {
+                // No hand detected, keep the model spinning slowly for visual appeal
+                cube.rotation.x += 0.005;
+                cube.rotation.y += 0.005;
+            }
         }
 
         // --- INITIALIZATION ---
-        function run() {
+        async function run() {
             initThreeJS();
-            animate();
+            await createHandLandmarker();
+            enableCam(); // Starts the main loop: Camera -> MediaPipe -> Three.js
         }
 
         run();
     </script>
-
 </body>
 </html>
