@@ -1,143 +1,104 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
-    <script type="module">
-        // Import all necessary MediaPipe components
-        import { HandLandmarker, FilesetResolver, RunningMode } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
-        // --- CONSTANTS ---
-        const INDEX_FINGER_TIP = 8; 
+<script>
+    // --- GLOBAL VARIABLES ---
+    let scene, camera, renderer, controlledObject;
+    let targetRotationX = 0;
+    let targetRotationY = 0;
 
-        // --- GLOBAL VARIABLES ---
-        let handLandmarker;
-        // UPDATED: Use the imported RunningMode constant
-        let runningMode = RunningMode.VIDEO; 
-        let video;
-        let canvasContainer;
-        let lastVideoTime = -1;
-
-        // --- THREE.JS SETUP ---
-        let scene, camera, renderer, cube;
+    // --- THREE.JS SETUP ---
+    function initThreeJS() {
+        const canvasContainer = document.getElementById('webgl-canvas');
         
-        function initThreeJS() {
-            canvasContainer = document.getElementById('webgl-canvas');
-            
-            // Scene
-            scene = new THREE.Scene();
-            
-            // Camera (Perspective, looking out)
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 5;
-            
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            canvasContainer.appendChild(renderer.domElement);
-            
-            // Cube Model
-            const geometry = new THREE.BoxGeometry(2, 2, 2);
-            const material = new THREE.MeshPhongMaterial({ color: 0x00ffff, wireframe: false }); 
-            cube = new THREE.Mesh(geometry, material);
-            scene.add(cube);
-
-            // Lighting (Essential for MeshPhongMaterial)
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(0, 1, 1).normalize();
-            scene.add(directionalLight);
-
-            window.addEventListener('resize', onWindowResize, false);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        // --- MEDIAPIPE SETUP ---
-        async function createHandLandmarker() {
-            const vision = await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-            );
-            handLandmarker = await HandLandmarker.create(vision, {
-                baseOptions: {
-                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-                    delegate: "GPU"
-                },
-                // UPDATED: use the imported RunningMode.VIDEO
-                runningMode: RunningMode.VIDEO, 
-                numHands: 1
-            });
-            console.log("Hand Landmarker loaded!");
-        }
-
-        // --- CAMERA SETUP ---
-        function enableCam() {
-            video = document.getElementById('webcam-view');
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then((stream) => {
-                    video.srcObject = stream;
-                    video.addEventListener("loadeddata", predictWebcam);
-                })
-                .catch(error => {
-                    console.error("Error accessing webcam: ", error);
-                    document.getElementById('instructions').textContent = "ERROR: Could not access webcam. Check permissions and ensure all errors are cleared in the console.";
-                });
-        }
+        // 1. Scene Setup
+        scene = new THREE.Scene();
         
-        // --- MAIN PREDICTION LOOP ---
-        function predictWebcam() {
-            if (runningMode === RunningMode.VIDEO) {
-                let startTimeMs = performance.now();
-                if (video.currentTime !== lastVideoTime) {
-                    lastVideoTime = video.currentTime;
-                    // Detect hands in the current video frame
-                    handLandmarker.detectForVideo(video, startTimeMs, (result) => {
-                        processDetectionResult(result);
-                    });
-                }
-            }
-            // Continue the loop
-            window.requestAnimationFrame(predictWebcam);
+        // 2. Camera Setup
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+        
+        // 3. Renderer Setup
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        canvasContainer.appendChild(renderer.domElement);
+
+        // --- NEW ELEMENT 1: The Central Neon Globe (Your Model) ---
+        const geometry = new THREE.SphereGeometry(1.5, 64, 64); // High-resolution sphere
+        // Use a glowing, wireframe-style material for a supercluster/planet effect
+        const material = new THREE.MeshLambertMaterial({ 
+            color: 0x00ffcc,           // Neon cyan color
+            emissive: 0x00ffcc,        // Causes the object to glow
+            emissiveIntensity: 0.5,    // Set glow strength
+            wireframe: true            // Creates a futuristic grid look
+        });
+        controlledObject = new THREE.Mesh(geometry, material);
+        scene.add(controlledObject);
+
+        // --- NEW ELEMENT 2: Lighting and Environment ---
+        // Ambient light for general brightness
+        scene.add(new THREE.AmbientLight(0xffffff, 0.1)); 
+
+        // Point light (acts as the core of the supercluster)
+        const pointLight = new THREE.PointLight(0x00ffaa, 2, 100); 
+        pointLight.position.set(0, 0, 0); // Center of the sphere
+        scene.add(pointLight);
+
+        // --- NEW ELEMENT 3: Starfield Background (A simple, code-generated background) ---
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 5000;
+        const positions = [];
+
+        for (let i = 0; i < starsCount; i++) {
+            // Generate random positions far away from the center
+            positions.push((Math.random() - 0.5) * 200); 
+            positions.push((Math.random() - 0.5) * 200);
+            positions.push((Math.random() - 0.5) * 200);
+        }
+        starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+        const starsMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.15,
+            sizeAttenuation: true
+        });
+
+        const starField = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(starField);
+
+        window.addEventListener('resize', onWindowResize, false);
+        document.addEventListener('mousemove', onDocumentMouseMove, false);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onDocumentMouseMove(event) {
+        // Normalize mouse positions
+        targetRotationY = (event.clientX / window.innerWidth) * 2 - 1;
+        targetRotationX = (event.clientY / window.innerHeight) * 2 - 1;
+    }
+
+    // --- ANIMATION LOOP ---
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Apply smooth rotation to the central object
+        if (controlledObject) {
+            controlledObject.rotation.y += (targetRotationY * Math.PI - controlledObject.rotation.y) * 0.05;
+            controlledObject.rotation.x += (targetRotationX * Math.PI * 0.5 - controlledObject.rotation.x) * 0.05;
         }
 
-        // --- CORE CONTROL LOGIC (The "Magic") ---
-        function processDetectionResult(result) {
-            renderer.render(scene, camera); // Render the 3D scene every frame
+        renderer.render(scene, camera);
+    }
 
-            if (result.landmarks.length > 0) {
-                // Get the landmarks for the first detected hand
-                const landmarks = result.landmarks[0];
-                
-                // Get the coordinates of the index finger tip (landmark 8)
-                const indexFinger = landmarks[INDEX_FINGER_TIP];
-                
-                // 1. HORIZONTAL CONTROL
-                const mappedX = indexFinger.x * 2 - 1; 
-                const maxRotationSpeed = 0.05;
+    // --- INITIALIZATION ---
+    function run() {
+        initThreeJS();
+        animate();
+    }
 
-                cube.rotation.y += mappedX * maxRotationSpeed;
-
-                // 2. VERTICAL CONTROL
-                const mappedY = indexFinger.y * 2 - 1; 
-                cube.rotation.x -= mappedY * maxRotationSpeed;
-
-            } else {
-                // No hand detected, keep the model spinning slowly for visual appeal
-                cube.rotation.x += 0.005;
-                cube.rotation.y += 0.005;
-            }
-        }
-
-        // --- INITIALIZATION ---
-        async function run() {
-            initThreeJS();
-            await createHandLandmarker();
-            enableCam(); // Starts the main loop: Camera -> MediaPipe -> Three.js
-        }
-
-        run();
-    </script>
-</body>
-</html>
+    run();
+</script>
