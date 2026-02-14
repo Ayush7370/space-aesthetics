@@ -3,143 +3,422 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Space Aesthetics Model</title>
+    <title>Fun Food Aafy Aafy | Authentic Homemade Taste</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; overflow: hidden; background-color: #111; }
-        #webgl-canvas {
-            /* This is the container that the JavaScript looks for */
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 5;
+        :root {
+            --charcoal: #1A1A1A;
+            --amber: #FFBF00;
+            --off-white: #F9F9F9;
         }
-        #instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            font-family: sans-serif;
-            font-size: 1.2em;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 20;
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--off-white);
+            color: var(--charcoal);
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
-    </style>
-</head>
-<body>
+        h1, h2, h3, h4, .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+        .amber-text { color: var(--amber); }
+        .amber-bg { background-color: var(--amber); }
+        .charcoal-bg { background-color: var(--charcoal); }
+        .charcoal-text { color: var(--charcoal); }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--off-white); }
+        ::-webkit-scrollbar-thumb { background: var(--charcoal); border-radius: 10px; }
 
-    <div id="webgl-canvas"></div>
-    <div id="instructions">
-        **Instructions:** Move your mouse over the screen to rotate the Neon Supercluster!
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        
+        #cart-sidebar { transition: transform 0.3s ease-in-out; }
+        .cart-open #cart-sidebar { transform: translateX(0); }
+        .cart-closed #cart-sidebar { transform: translateX(100%); }
+
+        .slider-item { transition: opacity 1s ease-in-out; }
+        .nav-link.active { color: var(--amber); font-weight: 700; border-bottom: 2px solid var(--amber); }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0"
+  }
+}
+</script>
+</head>
+<body class="cart-closed min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="charcoal-bg text-white sticky top-0 z-50 shadow-xl border-b border-[#FFBF00]/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="#home" class="text-xl md:text-2xl font-serif font-bold amber-text tracking-tighter">FUN FOOD AAFY AAFY</a>
+                
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="#home" class="nav-link text-xs font-bold hover:amber-text transition-colors tracking-widest">HOME</a>
+                    <a href="#menu" class="nav-link text-xs font-bold hover:amber-text transition-colors tracking-widest">MENU</a>
+                    <a href="#specials" class="nav-link text-xs font-bold hover:amber-text transition-colors tracking-widest">SPECIALS</a>
+                    <a href="#about" class="nav-link text-xs font-bold hover:amber-text transition-colors tracking-widest">ABOUT</a>
+                    <a href="#contact" class="nav-link text-xs font-bold hover:amber-text transition-colors tracking-widest">CONTACT</a>
+                    <button onclick="toggleCart()" class="relative p-2 amber-bg text-black rounded-full hover:scale-105 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-white text-black text-[10px] font-bold px-1.5 rounded-full border border-black hidden">0</span>
+                    </button>
+                </div>
+
+                <div class="md:hidden flex items-center gap-4">
+                    <button onclick="toggleCart()" class="relative p-2 amber-text">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span id="cart-count-mobile" class="absolute -top-1 -right-1 amber-bg text-black text-[10px] font-bold px-1.5 rounded-full hidden">0</span>
+                    </button>
+                    <button onclick="toggleMobileMenu()" class="p-2 text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden charcoal-bg border-t border-white/10 px-4 py-6 space-y-4">
+            <a href="#home" onclick="toggleMobileMenu()" class="block text-lg font-medium text-gray-300">Home</a>
+            <a href="#menu" onclick="toggleMobileMenu()" class="block text-lg font-medium text-gray-300">Menu</a>
+            <a href="#specials" onclick="toggleMobileMenu()" class="block text-lg font-medium text-gray-300">Specials</a>
+            <a href="#about" onclick="toggleMobileMenu()" class="block text-lg font-medium text-gray-300">About</a>
+            <a href="#contact" onclick="toggleMobileMenu()" class="block text-lg font-medium text-gray-300">Contact</a>
+        </div>
+    </nav>
+
+    <!-- Main Content Mount Point -->
+    <div id="root" class="flex-grow"></div>
+
+    <!-- Footer -->
+    <footer class="charcoal-bg text-white pt-20 pb-10 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div class="col-span-1 md:col-span-2 space-y-6">
+                    <h2 class="text-3xl font-serif font-bold amber-text uppercase tracking-tighter">FUN FOOD AAFY AAFY</h2>
+                    <p class="text-gray-400 max-w-sm">Authentic homemade flavors prepared with traditional techniques and fresh local ingredients. Experience the heart of home cooking.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-6">Explore</h3>
+                    <ul class="space-y-4 text-gray-400">
+                        <li><a href="#home" class="hover:amber-text">Home</a></li>
+                        <li><a href="#menu" class="hover:amber-text">Menu</a></li>
+                        <li><a href="#specials" class="hover:amber-text">Specials</a></li>
+                        <li><a href="#about" class="hover:amber-text">Our Story</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-6">Contact</h3>
+                    <ul class="space-y-4 text-gray-400">
+                        <li>hello@aafyaafy.com</li>
+                        <li>+91 8810653651</li>
+                        <li>Handmade Quality Delivered</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="pt-8 border-t border-white/5 text-center text-gray-500 text-sm">
+                <p>&copy; 2024 Fun Food Aafy Aafy. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Sidebar -->
+    <div id="cart-overlay" onclick="toggleCart()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden"></div>
+    <div id="cart-sidebar" class="fixed inset-y-0 right-0 max-w-full flex z-[70] translate-x-full transition-transform duration-300">
+        <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col">
+            <div class="p-6 flex items-center justify-between charcoal-bg text-white">
+                <h2 class="text-2xl font-serif font-bold">Your Selection</h2>
+                <button onclick="toggleCart()" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-6"></div>
+            <div id="cart-footer" class="p-6 bg-gray-50 border-t space-y-4 hidden">
+                <div class="flex justify-between items-center text-lg">
+                    <span class="font-semibold text-gray-600">Total</span>
+                    <span id="cart-total" class="text-2xl font-bold charcoal-text">₹0</span>
+                </div>
+                <button onclick="handleCheckout()" id="checkout-btn" class="w-full amber-bg charcoal-text py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+                    <span>Confirm Order</span>
+                </button>
+                <p class="text-center text-xs text-gray-400 italic">Call to Confirm: 8810653651</p>
+            </div>
+        </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
+    <!-- Application Script -->
     <script>
-        // --- GLOBAL VARIABLES ---
-        let scene, camera, renderer, controlledObject;
-        let targetRotationX = 0;
-        let targetRotationY = 0;
-        
-        // --- THREE.JS SETUP ---
-        function initThreeJS() {
-            // FIX: document.getElementById('webgl-canvas') will now find the element!
-            const canvasContainer = document.getElementById('webgl-canvas');
+        // Data derived exactly from the flyer images
+        const MENU_ITEMS = [
+            // Ramzan Specials
+            { id: 'r1', name: 'Ramzan Special Iftar Plate', description: 'Fruit Chaat, Pakodi, Chana/Chole, Roohafza, Papad, Sweet Dish.', price: 120, category: 'Ramzan', image: 'https://images.unsplash.com/photo-1542344807-157f76301e8a?auto=format&fit=crop&q=80&w=800', isSpecial: true },
+            { id: 'r2', name: 'Roohafza', description: 'Traditional refreshing rose-flavored drink.', price: 15, category: 'Ramzan', image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=800' },
+            { id: 'r3', name: 'Chole', description: 'Spiced chickpeas cooked with traditional herbs.', price: 30, category: 'Ramzan', image: 'https://images.unsplash.com/photo-1545231027-63b6f1675108?auto=format&fit=crop&q=80&w=800' },
+            { id: 'r4', name: 'Mix Fruit Chaat', description: 'Seasonal fresh fruits with a tangy spice mix.', price: 50, category: 'Ramzan', image: 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&q=80&w=800' },
+            { id: 'r5', name: 'Pakodi', description: 'Crispy vegetable fritters served with chutney.', price: 30, category: 'Ramzan', image: 'https://images.unsplash.com/photo-1601050690597-df056fb46b45?auto=format&fit=crop&q=80&w=800' },
+            { id: 'r6', name: 'Papad', description: 'Crunchy roasted or fried lentil crackers.', price: 10, category: 'Ramzan', image: 'https://images.unsplash.com/photo-1589135398349-5944f124446c?auto=format&fit=crop&q=80&w=800' },
             
-            // 1. Scene Setup
-            scene = new THREE.Scene();
-            
-            // 2. Camera Setup
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 5;
-            
-            // 3. Renderer Setup
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            // This is the line that previously failed:
-            canvasContainer.appendChild(renderer.domElement); 
+            // Morning Breakfast
+            { id: 'b1', name: 'Bathua / Methi Paratha', description: 'Healthy and delicious stuffed flatbread.', price: 20, category: 'Breakfast', image: 'https://images.unsplash.com/photo-1626132646529-500637532537?auto=format&fit=crop&q=80&w=800', isSpecial: true },
+            { id: 'b2', name: 'Boil EGG', description: 'Perfectly boiled protein-packed breakfast egg.', price: 10, category: 'Breakfast', image: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&q=80&w=800' },
 
-            // --- ELEMENT 1: The Central Neon Globe (The Model) ---
-            const geometry = new THREE.SphereGeometry(1.5, 64, 64); // High-resolution sphere
-            const material = new THREE.MeshLambertMaterial({ 
-                color: 0x00ffcc,          
-                emissive: 0x00ffcc,       
-                emissiveIntensity: 0.5,   
-                wireframe: true           
+            // Fresh & Hot Rotis (Hath Ki Roti)
+            { id: 'rt1', name: 'Plain Roti', description: 'Freshly made handmade wheat roti.', price: 5, category: 'Roti', image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800' },
+            { id: 'rt2', name: 'Multigrain Roti', description: 'Nutritious handmade mixed grain flatbread.', price: 10, category: 'Roti', image: 'https://images.unsplash.com/photo-1589135398349-5944f124446c?auto=format&fit=crop&q=80&w=800' },
+
+            // Tiffin Service
+            { id: 't1', name: 'Daily Standard Tiffin', description: '3 Roti + Sabzi + Daal.', price: 70, category: 'Tiffin', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800' },
+            { id: 't2', name: 'Daily Premium Tiffin', description: '2 Roti + Chawal + Sabzi + Gosht + Daal.', price: 85, category: 'Tiffin', image: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&q=80&w=800', isSpecial: true },
+            { id: 'tm1', name: 'Monthly Basic Package', description: 'Vegetable + Daal + 2 Days Non-Veg monthly.', price: 2300, category: 'Tiffin', image: 'https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?auto=format&fit=crop&q=80&w=800' },
+            { id: 'tm2', name: 'Monthly Standard Package', description: '2 Days Non-Veg + 1 Sweet Dish monthly.', price: 2600, category: 'Tiffin', image: 'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&q=80&w=800' },
+            { id: 'tm3', name: 'Monthly Premium Package', description: '3 Days Non-Veg + 2 Sweet Dishes monthly.', price: 3200, category: 'Tiffin', image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=800' }
+        ];
+
+        let cart = JSON.parse(localStorage.getItem('aafy_cart')) || [];
+        let currentSlide = 0;
+        let slideInterval;
+
+        const SLIDES = [
+            { title: "Ramzan Special Menu", subtitle: "₹120 Iftar Plate", img: "https://images.unsplash.com/photo-1542344807-157f76301e8a?auto=format&fit=crop&q=80&w=1200" },
+            { title: "Morning Breakfast", subtitle: "Methi Paratha ₹20", img: "https://images.unsplash.com/photo-1626132646529-500637532537?auto=format&fit=crop&q=80&w=1200" },
+            { title: "Tiffin Service", subtitle: "Ghar Ka Khana Monthly", img: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=1200" },
+            { title: "Fresh Hath Ki Roti", subtitle: "Starting at ₹5 Only", img: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=1200" }
+        ];
+
+        function navigate() {
+            const hash = window.location.hash || '#home';
+            const root = document.getElementById('root');
+            clearInterval(slideInterval);
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('href') === hash);
             });
-            controlledObject = new THREE.Mesh(geometry, material);
-            scene.add(controlledObject);
-
-            // --- ELEMENT 2: Lighting and Environment ---
-            scene.add(new THREE.AmbientLight(0xffffff, 0.1)); 
-            
-            // Point light at the core
-            const pointLight = new THREE.PointLight(0x00ffaa, 2, 100); 
-            pointLight.position.set(0, 0, 0); 
-            scene.add(pointLight);
-
-            // --- ELEMENT 3: Starfield Background (A simple, code-generated background) ---
-            const starsGeometry = new THREE.BufferGeometry();
-            const starsCount = 5000;
-            const positions = [];
-
-            for (let i = 0; i < starsCount; i++) {
-                positions.push((Math.random() - 0.5) * 200); 
-                positions.push((Math.random() - 0.5) * 200);
-                positions.push((Math.random() - 0.5) * 200);
+            switch(hash) {
+                case '#menu': renderMenu(); break;
+                case '#specials': renderSpecials(); break;
+                case '#about': renderAbout(); break;
+                case '#contact': renderContact(); break;
+                default: renderHome(); break;
             }
-            starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            window.scrollTo(0,0);
+        }
 
-            const starsMaterial = new THREE.PointsMaterial({
-                color: 0xffffff,
-                size: 0.15,
-                sizeAttenuation: true
+        function toggleCart() {
+            const body = document.body;
+            const overlay = document.getElementById('cart-overlay');
+            if (body.classList.contains('cart-closed')) {
+                body.classList.replace('cart-closed', 'cart-open');
+                overlay.classList.remove('hidden');
+            } else {
+                body.classList.replace('cart-open', 'cart-closed');
+                overlay.classList.add('hidden');
+            }
+            renderCartItems();
+        }
+
+        function addToCart(id) {
+            const item = MENU_ITEMS.find(i => i.id === id);
+            const existing = cart.find(i => i.id === id);
+            if (existing) existing.quantity++;
+            else cart.push({ ...item, quantity: 1 });
+            saveCart();
+            const btn = event.currentTarget;
+            const original = btn.innerText;
+            btn.innerText = 'Added!';
+            btn.classList.add('amber-bg', 'charcoal-text');
+            setTimeout(() => {
+                btn.innerText = original;
+                btn.classList.remove('amber-bg', 'charcoal-text');
+            }, 1000);
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id !== id);
+            saveCart();
+            renderCartItems();
+        }
+
+        function saveCart() {
+            localStorage.setItem('aafy_cart', JSON.stringify(cart));
+            updateCartBadges();
+        }
+
+        function updateCartBadges() {
+            const count = cart.reduce((acc, i) => acc + i.quantity, 0);
+            const d = document.getElementById('cart-count');
+            const m = document.getElementById('cart-count-mobile');
+            [d, m].forEach(el => {
+                if (count > 0) { el.innerText = count; el.classList.remove('hidden'); }
+                else el.classList.add('hidden');
             });
-
-            const starField = new THREE.Points(starsGeometry, starsMaterial);
-            scene.add(starField);
-
-            window.addEventListener('resize', onWindowResize, false);
-            document.addEventListener('mousemove', onDocumentMouseMove, false);
         }
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function onDocumentMouseMove(event) {
-            // Normalize mouse positions
-            targetRotationY = (event.clientX / window.innerWidth) * 2 - 1;
-            targetRotationX = (event.clientY / window.innerHeight) * 2 - 1;
-        }
-
-        // --- ANIMATION LOOP ---
-        function animate() {
-            requestAnimationFrame(animate);
-
-            // Apply smooth rotation to the central object
-            if (controlledObject) {
-                // Horizontal mouse movement controls Y-axis rotation
-                controlledObject.rotation.y += (targetRotationY * Math.PI - controlledObject.rotation.y) * 0.05;
-                // Vertical mouse movement controls X-axis rotation
-                controlledObject.rotation.x += (targetRotationX * Math.PI * 0.5 - controlledObject.rotation.x) * 0.05;
+        function renderCartItems() {
+            const container = document.getElementById('cart-items');
+            const footer = document.getElementById('cart-footer');
+            const totalEl = document.getElementById('cart-total');
+            if (cart.length === 0) {
+                container.innerHTML = `<div class="text-center py-20 text-gray-400">Cart is empty</div>`;
+                footer.classList.add('hidden');
+            } else {
+                let html = '';
+                let total = 0;
+                cart.forEach(i => {
+                    total += i.price * i.quantity;
+                    html += `<div class="flex gap-4 animate-fade-in"><img src="${i.image}" class="w-16 h-16 object-cover rounded-lg" /><div class="flex-1"><div class="flex justify-between font-bold"><h4>${i.name}</h4><button onclick="removeFromCart('${i.id}')" class="text-gray-400">×</button></div><p class="text-xs text-gray-500">Qty: ${i.quantity}</p><p class="amber-text font-bold">₹${i.price * i.quantity}</p></div></div>`;
+                });
+                container.innerHTML = html;
+                totalEl.innerText = '₹' + total;
+                footer.classList.remove('hidden');
             }
-
-            renderer.render(scene, camera);
         }
 
-        // --- INITIALIZATION ---
-        function run() {
-            initThreeJS();
-            animate();
+        function handleCheckout() {
+            const btn = document.getElementById('checkout-btn');
+            btn.innerText = 'Processing...';
+            setTimeout(() => {
+                cart = [];
+                saveCart();
+                document.getElementById('cart-items').innerHTML = `<div class="text-center py-20"><h3 class="text-2xl font-serif mb-2">Order Confirmed!</h3><p>We'll call you at 8810653651 for details.</p></div>`;
+                document.getElementById('cart-footer').classList.add('hidden');
+                setTimeout(toggleCart, 2000);
+            }, 1500);
         }
 
-        run();
+        function renderHome() {
+            const featured = MENU_ITEMS.filter(i => i.isSpecial).slice(0, 3);
+            document.getElementById('root').innerHTML = `
+                <section class="relative h-[85vh] flex items-center overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070" class="absolute inset-0 w-full h-full object-cover z-0" />
+                    <div class="absolute inset-0 bg-black/60 z-10"></div>
+                    <div class="relative z-20 max-w-7xl mx-auto px-4 w-full animate-fade-in">
+                        <span class="amber-text font-bold tracking-[0.4em] text-xs mb-4 block uppercase">Authentic Homemade Taste</span>
+                        <h1 class="text-6xl md:text-8xl font-serif font-bold text-white mb-6 leading-tight">Freshly Made <br/><span class="italic amber-text">Ghar Ka Khana.</span></h1>
+                        <p class="text-gray-300 text-lg md:text-xl mb-10 max-w-xl leading-relaxed">Delicious meals, handcrafted with love and delivered fresh to your door. Experience the joy of home-cooked perfection.</p>
+                        <div class="flex gap-4"><a href="#menu" class="amber-bg charcoal-text px-10 py-5 rounded-xl font-bold hover:scale-105 transition-transform shadow-2xl">EXPLORE MENU</a></div>
+                    </div>
+                </section>
+                <section class="max-w-7xl mx-auto px-4 py-24 text-center">
+                    <h2 class="text-4xl font-serif font-bold mb-16">Chef's Signature Recommendations</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-12">${featured.map(i => renderCard(i)).join('')}</div>
+                </section>
+            `;
+        }
+
+        function renderMenu() {
+            document.getElementById('root').innerHTML = `
+                <div class="relative h-[65vh] bg-black overflow-hidden group">
+                    ${SLIDES.map((s, idx) => `<div id="slide-${idx}" class="slider-item absolute inset-0 transition-opacity duration-1000 ${idx === 0 ? 'opacity-100' : 'opacity-0'}"><img src="${s.img}" class="w-full h-full object-cover opacity-60" /><div class="absolute inset-0 flex flex-col items-center justify-center text-center px-4"><h2 class="text-5xl md:text-7xl font-serif font-bold text-white mb-4">${s.title}</h2><p class="text-2xl amber-text font-serif italic">${s.subtitle}</p></div></div>`).join('')}
+                    
+                    <!-- Manual Slider Controls -->
+                    <button onclick="prevSlide()" class="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/30 hover:bg-amber-400 hover:text-black text-white flex items-center justify-center transition-all z-20 backdrop-blur-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <button onclick="nextSlide()" class="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/30 hover:bg-amber-400 hover:text-black text-white flex items-center justify-center transition-all z-20 backdrop-blur-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+
+                    <div class="absolute bottom-8 left-0 right-0 flex justify-center gap-3 z-20">
+                        ${SLIDES.map((_, i) => `<button onclick="setSlide(${i})" class="w-12 h-1 bg-white/20 rounded-full hover:bg-amber-400 transition-colors"></button>`).join('')}
+                    </div>
+                </div>
+                <div class="max-w-7xl mx-auto px-4 py-16">
+                    <div class="flex flex-wrap justify-center gap-4 mb-16">
+                        ${['All', 'Ramzan', 'Breakfast', 'Roti', 'Tiffin'].map(c => `<button onclick="filterMenu('${c}')" class="px-8 py-3 rounded-full border border-gray-200 hover:amber-bg hover:charcoal-text transition-all font-bold uppercase text-[10px] tracking-widest">${c}</button>`).join('')}
+                    </div>
+                    <div id="menu-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">${MENU_ITEMS.map(i => renderCard(i)).join('')}</div>
+                </div>
+            `;
+            startSlider(SLIDES.length);
+        }
+
+        function setSlide(n) {
+            document.querySelectorAll('.slider-item').forEach((el, i) => el.style.opacity = (i === n) ? '1' : '0');
+            currentSlide = n;
+            resetInterval();
+        }
+
+        function nextSlide() { setSlide((currentSlide + 1) % SLIDES.length); }
+        function prevSlide() { setSlide((currentSlide - 1 + SLIDES.length) % SLIDES.length); }
+
+        function resetInterval() {
+            clearInterval(slideInterval);
+            slideInterval = setInterval(nextSlide, 5000);
+        }
+
+        function startSlider(len) { currentSlide = 0; resetInterval(); }
+
+        function filterMenu(cat) {
+            const filtered = cat === 'All' ? MENU_ITEMS : MENU_ITEMS.filter(i => i.category === cat);
+            document.getElementById('menu-grid').innerHTML = filtered.map(item => renderCard(item)).join('');
+        }
+
+        function renderCard(item) {
+            return `<div class="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all flex flex-col h-full group border border-gray-100 animate-fade-in"><div class="h-56 overflow-hidden relative"><img src="${item.image}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />${item.isSpecial ? '<span class="absolute top-4 left-4 amber-bg charcoal-text text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">HIGHLY RECOMMENDED</span>' : ''}</div><div class="p-8 flex flex-col flex-1 text-left"><div class="flex justify-between items-start mb-4"><h3 class="font-serif font-bold text-xl leading-tight group-hover:amber-text transition-colors">${item.name}</h3><span class="amber-text font-black text-lg">₹${item.price}</span></div><p class="text-gray-500 text-sm mb-8 line-clamp-2">${item.description}</p><button onclick="addToCart('${item.id}')" class="mt-auto charcoal-bg text-white py-4 rounded-xl font-bold hover:amber-bg hover:charcoal-text transition-all shadow-md active:scale-95">ADD TO BASKET</button></div></div>`;
+        }
+
+        function renderSpecials() {
+            const specials = MENU_ITEMS.filter(i => i.isSpecial);
+            document.getElementById('root').innerHTML = `
+                <section class="bg-black text-white py-32 text-center relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1545231027-63b6f1675108?auto=format&fit=crop&q=80&w=1200')] bg-cover"></div>
+                    <div class="relative z-10"><h1 class="text-6xl md:text-8xl font-serif mb-6 uppercase tracking-tighter">Our Special One's</h1><p class="amber-text italic text-2xl font-serif">A curated showcase of our most loved homemade dishes.</p></div>
+                </section>
+                <div class="max-w-7xl mx-auto px-4 py-24 space-y-40">${specials.map((i, idx) => `<div class="flex flex-col ${idx % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} items-center gap-20 animate-fade-in"><div class="w-full md:w-1/2 group relative"><img src="${i.image}" class="rounded-[3rem] shadow-2xl h-[500px] w-full object-cover transition-transform group-hover:scale-[1.02]" /><div class="absolute -bottom-6 -right-6 amber-bg charcoal-text p-8 rounded-3xl shadow-2xl font-black text-3xl">₹${i.price}</div></div><div class="flex-1 space-y-8"><h2 class="text-5xl md:text-7xl font-serif font-bold leading-tight uppercase tracking-tighter">${i.name}</h2><p class="text-gray-500 text-xl leading-relaxed italic font-serif">"${i.description}"</p><button onclick="addToCart('${i.id}')" class="charcoal-bg text-white px-16 py-6 rounded-2xl font-bold hover:amber-bg hover:charcoal-text transition-all text-lg shadow-2xl">ORDER SPECIAL</button></div></div>`).join('')}</div>
+            `;
+        }
+
+        function renderAbout() {
+            document.getElementById('root').innerHTML = `
+                <section class="bg-gray-100 py-32 text-center"><div class="max-w-4xl mx-auto px-4"><h1 class="text-7xl font-serif font-bold mb-8 uppercase tracking-tighter">Fun Food Aafy Aafy</h1><p class="text-2xl text-gray-600 italic font-serif">"Ghar Ka Khana with a touch of artisanal excellence."</p></div></section>
+                <div class="max-w-7xl mx-auto px-4 py-32"><div class="flex flex-col md:flex-row gap-20 items-center"><div class="flex-1 space-y-8"><h2 class="text-5xl font-serif font-bold uppercase tracking-tighter">Handmade Quality</h2><p class="text-gray-600 leading-relaxed text-xl">At Fun Food Aafy Aafy, we believe that the best flavor comes from the hearth of a home. We use traditional techniques and fresh ingredients to prepare every paratha, roti, and tiffin meal with the same care you'd find in your own kitchen.</p></div><img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=1200" class="w-full md:w-1/2 rounded-[3rem] shadow-2xl" /></div></div>
+            `;
+        }
+
+        function renderContact() {
+            document.getElementById('root').innerHTML = `
+                <div class="max-w-7xl mx-auto px-4 py-32">
+                    <div class="text-center mb-24"><h1 class="text-7xl font-serif font-bold mb-6 uppercase tracking-tighter">Get In Touch</h1><p class="text-gray-500 text-xl italic">For orders, inquiries, or monthly tiffin services, we're here to help.</p></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-24">
+                        <form onsubmit="event.preventDefault(); this.innerHTML='<div class=\'text-center py-20 animate-fade-in\'><h2 class=\'text-4xl font-serif font-bold mb-4\'>Thank You!</h2><p class=\'text-xl text-gray-500\'>We will contact you shortly to confirm your request.</p></div>';" class="bg-white p-12 md:p-16 rounded-[4rem] shadow-2xl space-y-8 border border-gray-100">
+                            <input required placeholder="Your Name" class="w-full px-8 py-5 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-amber-400/20" />
+                            <input required type="email" placeholder="Email Address" class="w-full px-8 py-5 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-amber-400/20" />
+                            <textarea required placeholder="Message or Order Inquiry..." rows="5" class="w-full px-8 py-5 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-4 focus:ring-amber-400/20"></textarea>
+                            <button class="w-full charcoal-bg text-white py-6 rounded-2xl font-bold hover:amber-bg hover:charcoal-text transition-all shadow-xl text-lg uppercase tracking-widest">Send Message</button>
+                        </form>
+                        <div class="space-y-12">
+                            <div class="bg-gray-200 h-80 rounded-[3rem] flex items-center justify-center font-bold text-gray-400 shadow-inner italic">Location Map Visualization</div>
+                            <div class="space-y-6"><h3 class="text-4xl font-serif font-bold uppercase tracking-tighter">Contact Info</h3><p class="text-gray-600 text-xl font-medium">Phone / WhatsApp: +91 8810653651<br/>Email: info@aafyaafy.com</p><p class="text-gray-500 italic">"Timely Delivery & Fresh Homemade Taste"</p></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
+
+        window.addEventListener('hashchange', navigate);
+        window.addEventListener('DOMContentLoaded', () => { navigate(); updateCartBadges(); });
     </script>
-
 </body>
 </html>
